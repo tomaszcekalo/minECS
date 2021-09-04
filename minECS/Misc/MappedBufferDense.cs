@@ -1,105 +1,107 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
-public class MappedBufferDense<TKey, TData> : MappedBufferBase<TKey, TData>
-    where TKey : struct where TData : struct
+namespace minECS.Misc
 {
-    protected Dictionary<TKey, int> keysToIndices_;
-
-    protected IReadOnlyDictionary<TKey, int> KeysToIndicesDebug => keysToIndices_;
-
-    public MappedBufferDense() : base(4)
+    public class MappedBufferDense<TKey, TData> : MappedBufferBase<TKey, TData>
+        where TKey : struct where TData : struct
     {
-        // NOTE: We intentionally don't use initialSize for dense buffers
-        keysToIndices_ = new Dictionary<TKey, int>(4);
-    }
+        protected Dictionary<TKey, int> keysToIndices_;
 
-    public (Dictionary<TKey, int> k2i, TKey[] i2k, TData[] data) __GetBuffers()
-    {
-        return (keysToIndices_, keys_, data_);
-    }
+        protected IReadOnlyDictionary<TKey, int> KeysToIndicesDebug => keysToIndices_;
 
-    public void SetK2i(TKey[] keys, int[] ints)
-    {
-        keysToIndices_.Clear();
-        for (var i = 0; i < keys.Length; i++)
+        public MappedBufferDense() : base(4)
         {
-            keysToIndices_.Add(keys[i], ints[i]);
-            keys_[ints[i]] = keys[i];
-        }
-    }
-
-    internal int GetIndexFromKey(TKey key)
-    {
-        return keysToIndices_[key];
-    }
-
-    public ref TData GetDataFromKey(TKey key)
-    {
-        return ref data_[keysToIndices_[key]];
-    }
-
-    internal void AddKey(TKey key, in TData data)
-    {
-        keysToIndices_.Add(key, AddEntry(key, data));
-    }
-    
-    internal int RemoveKey(TKey key)
-    {
-        var keyIndex = GetIndexFromKey(key);
-        (TKey replacingKey, int lastIndex) removed = RemoveByIndex(keyIndex);
-        keysToIndices_[removed.replacingKey] = keyIndex; //update index of last key
-        keysToIndices_.Remove(key);
-        return removed.lastIndex;
-    }
-
-    public override void UpdateKeyForEntry(TKey oldKey, TKey newKey)
-    {
-        var replacedKeyValue = keysToIndices_[oldKey];
-        keysToIndices_.Remove(oldKey);
-        keysToIndices_.Add(newKey, replacedKeyValue);
-        UpdateEntryKey(replacedKeyValue, newKey);
-    }
-
-    public void SortDataByKey()
-    {
-        var mm = SortKeysAndGetMoves();
-
-        var newData = new TData[data_.Length];
-
-        for (var i = 0; i < mm.Length; i++)
-        {
-            var oldIndex = mm[i];
-            newData[i] = data_[oldIndex];
-            keysToIndices_[keys_[i]] = i;
+            // NOTE: We intentionally don't use initialSize for dense buffers
+            keysToIndices_ = new Dictionary<TKey, int>(4);
         }
 
-        //todo cache sorting array (GC-less)
-        data_ = newData;
-    }
-
-    public int[] SortDataApplyKeysAndGetMoves()
-    {
-        var moves = SortDataAndGetMoves();
-
-        var newKeys = new TKey[keys_.Length];
-
-        for (var i = 0; i < Count; i++)
+        public (Dictionary<TKey, int> k2i, TKey[] i2k, TData[] data) __GetBuffers()
         {
-            newKeys[i] = keys_[moves[i]];
-            keysToIndices_[keys_[moves[i]]] = i;
+            return (keysToIndices_, keys_, data_);
         }
 
-        keys_ = newKeys;
+        public void SetK2i(TKey[] keys, int[] ints)
+        {
+            keysToIndices_.Clear();
+            for (var i = 0; i < keys.Length; i++)
+            {
+                keysToIndices_.Add(keys[i], ints[i]);
+                keys_[ints[i]] = keys[i];
+            }
+        }
 
-        return moves;
-    }
+        internal int GetIndexFromKey(TKey key)
+        {
+            return keysToIndices_[key];
+        }
 
-    public override string GetDebugString(bool detailed)
-    {
-        return
-            $"  Entries: {Count}, Map Entries: {keysToIndices_.Count}\n" +
-            $"  Map: {string.Join(", ", keysToIndices_.Select(x => x.Key + ":" + x.Value))}";
+        public ref TData GetDataFromKey(TKey key)
+        {
+            return ref data_[keysToIndices_[key]];
+        }
+
+        internal void AddKey(TKey key, in TData data)
+        {
+            keysToIndices_.Add(key, AddEntry(key, data));
+        }
+
+        internal int RemoveKey(TKey key)
+        {
+            var keyIndex = GetIndexFromKey(key);
+            (TKey replacingKey, int lastIndex) removed = RemoveByIndex(keyIndex);
+            keysToIndices_[removed.replacingKey] = keyIndex; //update index of last key
+            keysToIndices_.Remove(key);
+            return removed.lastIndex;
+        }
+
+        public override void UpdateKeyForEntry(TKey oldKey, TKey newKey)
+        {
+            var replacedKeyValue = keysToIndices_[oldKey];
+            keysToIndices_.Remove(oldKey);
+            keysToIndices_.Add(newKey, replacedKeyValue);
+            UpdateEntryKey(replacedKeyValue, newKey);
+        }
+
+        public void SortDataByKey()
+        {
+            var mm = SortKeysAndGetMoves();
+
+            var newData = new TData[data_.Length];
+
+            for (var i = 0; i < mm.Length; i++)
+            {
+                var oldIndex = mm[i];
+                newData[i] = data_[oldIndex];
+                keysToIndices_[keys_[i]] = i;
+            }
+
+            //todo cache sorting array (GC-less)
+            data_ = newData;
+        }
+
+        public int[] SortDataApplyKeysAndGetMoves()
+        {
+            var moves = SortDataAndGetMoves();
+
+            var newKeys = new TKey[keys_.Length];
+
+            for (var i = 0; i < Count; i++)
+            {
+                newKeys[i] = keys_[moves[i]];
+                keysToIndices_[keys_[moves[i]]] = i;
+            }
+
+            keys_ = newKeys;
+
+            return moves;
+        }
+
+        public override string GetDebugString(bool detailed)
+        {
+            return
+                $"  Entries: {Count}, Map Entries: {keysToIndices_.Count}\n" +
+                $"  Map: {string.Join(", ", keysToIndices_.Select(x => x.Key + ":" + x.Value))}";
+        }
     }
 }

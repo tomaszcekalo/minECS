@@ -9,7 +9,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FNA\FNA.Core.csproj" />
-    <ProjectReference Include="..\minECS\minECS.csproj" />
   </ItemGroup>
 
   <ItemGroup>

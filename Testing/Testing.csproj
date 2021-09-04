@@ -24,10 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\minECS\minECS.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Update="Font.xnb">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
