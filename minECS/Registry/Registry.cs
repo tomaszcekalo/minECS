@@ -102,6 +102,18 @@ namespace minECS.Registry
             componentsManager_.AddComponent(entIdx, component, ref entData);
         }
 
+        public ref T GetComponent<T>(EntIdx index)
+            where T : struct
+        {
+            var compBuffers = ((ComponentBufferSparse<T>)
+                    componentsManager_
+                    .GetBufferSlow<T>())
+                    .__GetBuffers();
+            var compIdx2EntIdx = compBuffers.i2EntIdx;
+            var components = compBuffers.data;
+            return ref components[Array.IndexOf(compIdx2EntIdx, index)];
+        }
+
         public void RemoveComponent<T>(EntUID entUID) where T : struct
         {
             EntIdx entIdx = GetIndexFromKey(entUID);
